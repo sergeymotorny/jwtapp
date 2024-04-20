@@ -17,23 +17,21 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationEn
 @Configuration
 public class WebSecurityConfig {
 
-    private final JwtTokenProvider jwtTokenProvider;
-
-    private final AuthenticationEntryPoint unauthorizedHandler;
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
 
     private static final String ADMIN_ENDPOINT = "/api/v1/admin/**";
     private static final String LOGIN_ENDPOINT = "/api/v1/auth/login";
 
     @Autowired
-    public WebSecurityConfig(JwtTokenProvider jwtTokenProvider, AuthenticationEntryPoint unauthorizedHandler) {
+    public WebSecurityConfig(JwtTokenProvider jwtTokenProvider) {
         this.jwtTokenProvider = jwtTokenProvider;
-        this.unauthorizedHandler = unauthorizedHandler;
     }
 
-    @Bean
-    public JwtTokenFilter jwtTokenFilter() {
-        return new JwtTokenFilter(jwtTokenProvider);
-    }
+//    @Bean
+//    public JwtTokenFilter jwtTokenFilter() {
+//        return new JwtTokenFilter(jwtTokenProvider);
+//    }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfiguration) throws Exception {
@@ -58,20 +56,18 @@ public class WebSecurityConfig {
 //    }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        //(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-
-        http.csrf(csrf -> csrf.disable())
+    public SecurityFilterChain filterChain(HttpSecurity http, AuthenticationEntryPoint unauthorizedHandler) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(LOGIN_ENDPOINT).permitAll()
                         .requestMatchers(ADMIN_ENDPOINT).hasRole("ADMIN")
                         .anyRequest().authenticated());
+//                        .addFilterBefore(jwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
         //http.authenticationProvider(authenticationProvider());
-
-        http.addFilterBefore(jwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
