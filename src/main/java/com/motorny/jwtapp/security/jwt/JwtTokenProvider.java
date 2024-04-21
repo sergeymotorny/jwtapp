@@ -1,36 +1,28 @@
 package com.motorny.jwtapp.security.jwt;
 
 import com.motorny.jwtapp.model.Role;
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SecureDigestAlgorithm;
-import jakarta.annotation.PostConstruct;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 @Component
 public class JwtTokenProvider {
-    @Value("${jwt.token.secret}")
-    private static SecretKey key;
+    private static final SecretKey KEY = Jwts.SIG.HS256.key().build();
+
     @Value("${jwt.token.expired}")
     private long validityInMilliseconds;
-
-    //public static final String JWT_KEY = "JSDFSDFSDFASJDHASDASDdfa32dJHASFDA67765asda123dsdsw";
 
     private final UserDetailsService userDetailsService;
 
@@ -39,26 +31,9 @@ public class JwtTokenProvider {
         this.userDetailsService = userDetailsService;
     }
 
-//    @PostConstruct
-//    protected  void init() {
-//        secret = Base64.getEncoder().encodeToString(secret.getBytes());
-//    }
-
-    @PostConstruct
-    public void init() {
-        key = Jwts.SIG.HS256
-                .key().build();
-    }
-
     public String createToken(String username, List<Role> roles) {
 
-        // option 1
-        SecretKey secretKey = generalKey();
-        // option 2
-        //SecretKey key = Jwts.SIG.HS256.key().build();
-
-        Claims claims = (Claims) Jwts.claims().subject(username);
-        claims.put("roles", getRoleNames(roles));
+        Map<String, Object> claims = Map.of("username", username, "roles", getRoleNames(roles));
 
         Date now = new Date();
         Date validity = new Date(now.getTime() + validityInMilliseconds);
@@ -67,7 +42,7 @@ public class JwtTokenProvider {
                 .claims(claims)
                 .issuedAt(now)
                 .expiration(validity)
-                .signWith(key)//
+                .signWith(KEY)
                 .compact();
     }
 
@@ -78,7 +53,7 @@ public class JwtTokenProvider {
 
     public String getUsername(String token) {
         return Jwts.parser()
-                .verifyWith(key)
+                .verifyWith(KEY)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
@@ -96,7 +71,7 @@ public class JwtTokenProvider {
     public boolean validateToken(String token) {
         try {
             Jws<Claims> claims = Jwts.parser()
-                    .verifyWith(key)
+                    .verifyWith(KEY)
                     .build()
                     .parseSignedClaims(token);
 
@@ -119,10 +94,4 @@ public class JwtTokenProvider {
 
         return result;
     }
-
-    public static SecretKey generalKey() {
-        byte[] encodeKey = Base64.getDecoder().decode(JwtTokenProvider.key.getEncoded());
-        return new SecretKeySpec(encodeKey, 0, encodeKey.length, "HmacSHA256");
-    }
-
 }
