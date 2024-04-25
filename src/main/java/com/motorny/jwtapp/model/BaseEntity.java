@@ -23,6 +23,6 @@ public class BaseEntity {
     private Date updated;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
+    @Column(name = "status", length = 20)
     private Status status;
 }

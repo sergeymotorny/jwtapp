@@ -1,5 +1,6 @@
 package com.motorny.jwtapp.config;
 
+import com.motorny.jwtapp.security.jwt.AuthEntryPointJwt;
 import com.motorny.jwtapp.security.jwt.JwtTokenFilter;
 import com.motorny.jwtapp.security.jwt.JwtTokenProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,13 +13,16 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
 
 @Configuration
 public class WebSecurityConfig {
 
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
+    private AuthEntryPointJwt unauthorizedHandler;
+
 
     private static final String ADMIN_ENDPOINT = "/api/v1/admin/**";
     private static final String LOGIN_ENDPOINT = "/api/v1/auth/login";
@@ -28,10 +32,10 @@ public class WebSecurityConfig {
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
-//    @Bean
-//    public JwtTokenFilter jwtTokenFilter() {
-//        return new JwtTokenFilter(jwtTokenProvider);
-//    }
+   @Bean
+   public JwtTokenFilter jwtTokenFilter() {
+       return new JwtTokenFilter(jwtTokenProvider);
+   }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfiguration) throws Exception {
@@ -39,6 +43,7 @@ public class WebSecurityConfig {
     }
 
     @Bean
+
     public AuthenticationEntryPoint authenticationEntryPoint() {
         BasicAuthenticationEntryPoint entryPoint = new BasicAuthenticationEntryPoint();
         entryPoint.setRealmName("My Realm");
@@ -64,41 +69,9 @@ public class WebSecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(LOGIN_ENDPOINT).permitAll()
                         .requestMatchers(ADMIN_ENDPOINT).hasRole("ADMIN")
-                        .anyRequest().authenticated());
-//                        .addFilterBefore(jwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
-
-        //http.authenticationProvider(authenticationProvider());
+                        .anyRequest().authenticated())
+                .addFilterBefore(jwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
-
-
-
-//    @Bean
-//    public WebSecurityCustomizer webSecurityCustomizer() {
-//        return (web) -> web.ignoring().requestMatchers("/js/**", "/images/**");
-//    }
-//
-//
-//    @Bean
-//    @Override
-//    public AuthenticationManager authenticationManagerBean() throws Exception {
-//        return super.authenticationManagerBean();
-//    }
-//
-//    @Override
-//    protected void configure(HttpSecurity http) throws Exception {
-//        http
-//                .httpBasic().disable()
-//                .csrf().disable()
-//                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-//                .and()
-//                .authorizeRequests()
-//                .antMatchers(LOGIN_ENDPOINT).permitAll()
-//                .antMatchers(ADMIN_ENDPOINT).hasRole("ADMIN")
-//                .anyRequest().authenticated()
-//                .and()
-//                .apply(new JwtConfigurer(jwtTokenProvider));
-//    }
-
 }

@@ -1,6 +1,8 @@
 package com.motorny.jwtapp.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -14,6 +16,8 @@ import java.util.List;
 @Getter
 public class Role extends BaseEntity {
 
+    @NotBlank
+    @Size(max = 30)
     @Column(name = "name")
     private String name;
 
