@@ -1,12 +1,11 @@
 package com.motorny.jwtapp.security.jwt;
 
 import com.motorny.jwtapp.model.Role;
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
-import jakarta.annotation.PostConstruct;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
 import jakarta.servlet.http.HttpServletRequest;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,18 +13,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
-import java.security.Key;
-import java.security.PublicKey;
 import java.util.*;
 
 @Component
-@Slf4j
 public class JwtTokenProvider {
-    @Value("${jwt.token.secret}")
-    private String secret;
+    private static final SecretKey KEY = Jwts.SIG.HS256.key().build();
 
     @Value("${jwt.token.expired}")
     private long validityInMilliseconds;
@@ -39,7 +33,7 @@ public class JwtTokenProvider {
 
     public String createToken(String username, List<Role> roles) {
 
-        Map<String, Object> claims = Map.of("sub", username, "roles", getRoleNames(roles));
+        Map<String, Object> claims = Map.of("username", username, "roles", getRoleNames(roles));
 
         Date now = new Date();
         Date validity = new Date(now.getTime() + validityInMilliseconds);
@@ -48,7 +42,7 @@ public class JwtTokenProvider {
                 .claims(claims)
                 .issuedAt(now)
                 .expiration(validity)
-                .signWith(generateHmacShaKey())
+                .signWith(KEY)
                 .compact();
     }
 
@@ -59,7 +53,7 @@ public class JwtTokenProvider {
 
     public String getUsername(String token) {
         return Jwts.parser()
-                .setSigningKey(generateHmacShaKey())
+                .verifyWith(KEY)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
@@ -68,8 +62,7 @@ public class JwtTokenProvider {
 
     public String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
-
-        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer_"))  {
+        if (bearerToken != null && bearerToken.startsWith("Bearer_"))  {
             return bearerToken.substring(7);
         }
         return null;
@@ -77,24 +70,19 @@ public class JwtTokenProvider {
 
     public boolean validateToken(String token) {
         try {
-            Jwts.parser()
-                    .setSigningKey(generateHmacShaKey())
+            Jws<Claims> claims = Jwts.parser()
+                    .verifyWith(KEY)
                     .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
+                    .parseSignedClaims(token);
+
+            if (claims.getPayload().getExpiration().before(new Date())) {
+                return false;
+            }
+
             return true;
-
-        } catch (MalformedJwtException e) {
-            log.error("Invalid JWT token {}", e.getMessage());
-        } catch (ExpiredJwtException e) {
-            log.error("JWT token is expired {}", e.getMessage());
-        } catch (UnsupportedJwtException e) {
-            log.error("JWT token is unsupported: {}", e.getMessage());
-        } catch (IllegalArgumentException e) {
-            log.error("JWT claims string is empty: {}", e.getMessage());
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new JwtAuthenticationException("JWT token is expired or invalid");
         }
-
-        return false;
     }
 
     private List<String> getRoleNames(List<Role> userRoles) {
@@ -105,9 +93,5 @@ public class JwtTokenProvider {
         });
 
         return result;
-    }
-
-    private Key generateHmacShaKey() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
 }
