@@ -36,6 +36,7 @@ public class AuthenticationRestControllerV1 {
         this.userService = userService;
     }
 
+
     @PostMapping("login")
     public ResponseEntity<Map<Object, Object>> login(@RequestBody AuthenticationRequestDto requestDto) {
         try {

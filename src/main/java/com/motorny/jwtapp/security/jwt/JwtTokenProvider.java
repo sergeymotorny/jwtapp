@@ -31,6 +31,12 @@ public class JwtTokenProvider {
         this.userDetailsService = userDetailsService;
     }
 
+
+    @PostConstruct
+    public void init() {
+        
+    }
+
     public String createToken(String username, List<Role> roles) {
 
         Map<String, Object> claims = Map.of("username", username, "roles", getRoleNames(roles));
@@ -42,7 +48,9 @@ public class JwtTokenProvider {
                 .claims(claims)
                 .issuedAt(now)
                 .expiration(validity)
+
                 .signWith(KEY)
+
                 .compact();
     }
 

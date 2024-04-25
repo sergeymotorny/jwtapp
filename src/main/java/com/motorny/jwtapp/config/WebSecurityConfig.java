@@ -17,10 +17,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 public class WebSecurityConfig {
 
+    @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
     @Autowired
     private AuthEntryPointJwt unauthorizedHandler;
+
 
     private static final String ADMIN_ENDPOINT = "/api/v1/admin/**";
     private static final String LOGIN_ENDPOINT = "/api/v1/auth/login";
@@ -30,10 +32,10 @@ public class WebSecurityConfig {
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
-    @Bean
-    public JwtTokenFilter jwtTokenFilter() {
-        return new JwtTokenFilter(jwtTokenProvider);
-    }
+   @Bean
+   public JwtTokenFilter jwtTokenFilter() {
+       return new JwtTokenFilter(jwtTokenProvider);
+   }
 
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfiguration) throws Exception {
@@ -41,9 +43,25 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http)
-            throws Exception {
 
+    public AuthenticationEntryPoint authenticationEntryPoint() {
+        BasicAuthenticationEntryPoint entryPoint = new BasicAuthenticationEntryPoint();
+        entryPoint.setRealmName("My Realm");
+        return entryPoint;
+    }
+
+//    @Bean
+//    public DaoAuthenticationProvider authenticationProvider() {
+//        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+//
+//        authProvider.setUserDetailsService(userDetailsService);
+//        authProvider.setPasswordEncoder(passwordEncoder());
+//
+//        return authProvider;
+//    }
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http, AuthenticationEntryPoint unauthorizedHandler) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
