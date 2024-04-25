@@ -12,9 +12,15 @@ public class JwtConfigurer extends SecurityConfigurerAdapter<DefaultSecurityFilt
         this.jwtTokenProvider = jwtTokenProvider;
     }
 
+    // Каждый запрос, перед тем как быть переданным серверу, он должен пройти
+    // через проверку JwtTokenFilter (20 строчка)
+    // JwtTokenFilter анализирует наш запрос (смотрит, что есть токен и токен
+    // валидный) мы продолжаем работать с ним.
+
     @Override
-    public void configure(HttpSecurity httpSecurity) throws Exception {
+    public void configure(HttpSecurity httpSecurity) {
         JwtTokenFilter jwtTokenFilter = new JwtTokenFilter(jwtTokenProvider);
+        // Такая же строчка в WebSecurityConfig
         httpSecurity.addFilterBefore(jwtTokenFilter, UsernamePasswordAuthenticationFilter.class);
     }
 }

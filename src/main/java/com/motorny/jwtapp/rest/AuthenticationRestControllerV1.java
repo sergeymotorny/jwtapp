@@ -4,7 +4,6 @@ import com.motorny.jwtapp.dto.AuthenticationRequestDto;
 import com.motorny.jwtapp.model.User;
 import com.motorny.jwtapp.security.jwt.JwtTokenProvider;
 import com.motorny.jwtapp.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
