@@ -32,9 +32,4 @@ public class AdminRestControllerV1 {
 
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
-
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<String> handleAccessDeniedException(AccessDeniedException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied: " + ex.getMessage());
-    }
 }

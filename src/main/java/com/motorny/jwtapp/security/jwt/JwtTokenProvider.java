@@ -2,10 +2,11 @@ package com.motorny.jwtapp.security.jwt;
 
 import com.motorny.jwtapp.model.Role;
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.MacAlgorithm;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -13,19 +14,18 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
+import java.security.Key;
+import java.security.PublicKey;
 import java.util.*;
 
 @Component
+@Slf4j
 public class JwtTokenProvider {
-    //@Value("${jwt.token.secret}")
-    private static String secret = "34FC8C06A67A053FFDD725B6DD527B8C9440F52A31D43056A48BA761F4A10980";
-
-    //private static SecretKey KEY;
-
-    private static final SecretKey KEY = Keys.hmacShaKeyFor(secret.getBytes());
+    @Value("${jwt.token.secret}")
+    private String secret;
 
     @Value("${jwt.token.expired}")
     private long validityInMilliseconds;
@@ -36,9 +36,6 @@ public class JwtTokenProvider {
     public JwtTokenProvider(UserDetailsService userDetailsService) {
         this.userDetailsService = userDetailsService;
     }
-
-    @PostConstruct
-    protected void init() {    }
 
     public String createToken(String username, List<Role> roles) {
 
@@ -51,7 +48,7 @@ public class JwtTokenProvider {
                 .claims(claims)
                 .issuedAt(now)
                 .expiration(validity)
-                .signWith(KEY)
+                .signWith(generateHmacShaKey())
                 .compact();
     }
 
@@ -62,7 +59,7 @@ public class JwtTokenProvider {
 
     public String getUsername(String token) {
         return Jwts.parser()
-                .verifyWith(KEY)
+                .setSigningKey(generateHmacShaKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload()
@@ -71,7 +68,8 @@ public class JwtTokenProvider {
 
     public String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
-        if (bearerToken != null && bearerToken.startsWith("Bearer_"))  {
+
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer_"))  {
             return bearerToken.substring(7);
         }
         return null;
@@ -80,16 +78,23 @@ public class JwtTokenProvider {
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
-                    .verifyWith(KEY)
+                    .setSigningKey(generateHmacShaKey())
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-
             return true;
 
-        } catch (JwtException | IllegalArgumentException e) {
-            throw new JwtAuthenticationException("JWT token is expired or invalid");
+        } catch (MalformedJwtException e) {
+            log.error("Invalid JWT token {}", e.getMessage());
+        } catch (ExpiredJwtException e) {
+            log.error("JWT token is expired {}", e.getMessage());
+        } catch (UnsupportedJwtException e) {
+            log.error("JWT token is unsupported: {}", e.getMessage());
+        } catch (IllegalArgumentException e) {
+            log.error("JWT claims string is empty: {}", e.getMessage());
         }
+
+        return false;
     }
 
     private List<String> getRoleNames(List<Role> userRoles) {
@@ -100,5 +105,9 @@ public class JwtTokenProvider {
         });
 
         return result;
+    }
+
+    private Key generateHmacShaKey() {
+        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(secret));
     }
 }

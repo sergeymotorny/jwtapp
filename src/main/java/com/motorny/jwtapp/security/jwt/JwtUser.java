@@ -8,6 +8,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 public class JwtUser implements UserDetails {
 
@@ -24,7 +25,7 @@ public class JwtUser implements UserDetails {
     private final boolean enabled;
     @Getter
     private final Date lastPasswordResetDate;
-    @Getter
+
     private final Collection<? extends GrantedAuthority> authorities;
 
     public JwtUser(Long id,
@@ -49,7 +50,7 @@ public class JwtUser implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of();
+        return authorities;
     }
 
     @JsonIgnore
@@ -83,6 +84,14 @@ public class JwtUser implements UserDetails {
     @Override
     public boolean isEnabled() {
         return enabled;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        JwtUser jwtUser = (JwtUser) o;
+        return Objects.equals(id, jwtUser.id);
     }
 
 }

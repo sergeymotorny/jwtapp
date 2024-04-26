@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -66,10 +65,10 @@ public class WebSecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth ->
                         auth.requestMatchers(LOGIN_ENDPOINT).permitAll()
-                        .requestMatchers(ADMIN_ENDPOINT).hasRole("ADMIN")
-                        .anyRequest().authenticated());
+                                .requestMatchers(ADMIN_ENDPOINT).hasRole("ADMIN")
+                                .anyRequest().authenticated());
 
-        http.httpBasic(Customizer.withDefaults());
+        http.authenticationProvider(authenticationProvider(bCryptPasswordEncoder));
 
         http.addFilterBefore(jwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
 

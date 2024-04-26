@@ -4,6 +4,7 @@ import com.motorny.jwtapp.dto.AuthenticationRequestDto;
 import com.motorny.jwtapp.model.User;
 import com.motorny.jwtapp.security.jwt.JwtTokenProvider;
 import com.motorny.jwtapp.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -19,7 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping(value = "/api/v1/auth/")
+@RequestMapping(value = "/api/v1/auth")
 public class AuthenticationRestControllerV1 {
 
     private final AuthenticationManager authenticationManager;
@@ -35,8 +36,8 @@ public class AuthenticationRestControllerV1 {
         this.userService = userService;
     }
 
-    @PostMapping("login")
-    public ResponseEntity<Map<Object, Object>> login(@RequestBody AuthenticationRequestDto requestDto) {
+    @PostMapping("/login")
+    public ResponseEntity<Map<Object, Object>> login(@Valid @RequestBody AuthenticationRequestDto requestDto) {
         try {
             String username = requestDto.getUsername();
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, requestDto.getPassword()));
